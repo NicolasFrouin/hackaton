@@ -366,7 +366,7 @@
 			this.canvasCtx = this.canvas.getContext("2d");
 			this.canvasCtx.fillStyle = "#f7f7f7";
 			this.canvasCtx.fill();
-			Runner.updateCanvasScaling(this.canvas);
+			// Runner.updateCanvasScaling(this.canvas);
 
 			// Horizon contains clouds, obstacles and the ground.
 			this.horizon = new Horizon(this.canvas, this.spriteDef, this.dimensions, this.config.GAP_COEFFICIENT);
@@ -836,7 +836,7 @@
 		 */
 		setArcadeMode() {
 			document.body.classList.add(Runner.classes.ARCADE_MODE);
-			this.setArcadeModeContainerScale();
+			// this.setArcadeModeContainerScale(); // cancel fullscreen mode
 		},
 
 		/**

@@ -1006,6 +1006,7 @@ const tracker = {
         tracker.canvas.height = tracker.canvas.scrollHeight;
         if (tracker.video.readyState === tracker.video.HAVE_ENOUGH_DATA) {
             let xOffset = 0;
+            let yOffset = 0;
             const videoSize = {
                 width: tracker.video.videoWidth,
                 height: tracker.video.videoHeight
@@ -1016,13 +1017,14 @@ const tracker = {
             };
             const renderSize = tracker.calculateSize(videoSize, canvasSize);
             xOffset = (canvasSize.width - renderSize.width) / 2;
+            yOffset = (canvasSize.height - renderSize.height) / 2;
 
             // clear canvas
             tracker.clearCanvas();
 
             // draw video frame from camera on canvas
             if (tracker.enableVideo) {
-                tracker.ctx.drawImage(tracker.video, xOffset, 0, renderSize.width, renderSize.height);
+                tracker.ctx.drawImage(tracker.video, xOffset, yOffset, renderSize.width, renderSize.height);
             }
         }
 
