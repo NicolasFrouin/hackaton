@@ -4,7 +4,9 @@ const Hackaton = {
 	pose: null,
 	keypoints: null,
 	runner: null,
+	tracker: null,
 	state: {
+		trackerOrEvents: [],
 		hasGameStarted: false,
 		hasTPosed: false,
 		internalCounter: 0,
@@ -19,6 +21,7 @@ const Hackaton = {
 	 * - the test function (checks if player is able the perform the action)
 	 * - the exec function (executes if test is successfull)
 	 * - the stop function (executes to terminate the action)
+	 * - the color of the threshold line on the canvas
 	 */
 	actions: [
 		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
@@ -28,10 +31,20 @@ const Hackaton = {
 	],
 	conf: {
 		minScore: 0.35,
-		tPoseYOffset: 100,
-		tPoseThreshold: 15,
+		tPoseArmYOffset: 50,
+		tPoseCounterLimit: 15,
 		jumpThreshold: 50,
 		crouchThreshold: 50,
+		drawThresholdLines: true,
+	},
+	/**
+	 * Gets the canvas or its context in which the tracker is rendered
+	 * @param {boolean} getContext Do you want to get the canvas' 2d context ?
+	 * @returns The canvas or its context
+	 */
+	getCanvasOrContext(getContext = false) {
+		let canvas = document.getElementById("canvas");
+		return getContext ? canvas.getContext("2d") : canvas;
 	},
 	/**
 	 * Game loop function running every frame
@@ -39,6 +52,7 @@ const Hackaton = {
 	 */
 	runApp(poses) {
 		this.runner = window["RunnerApp"];
+		this.tracker = tracker;
 		if (poses.length > 1) return;
 		if (!poses?.[0]?.keypoints) return;
 		this.poses = poses;
@@ -47,6 +61,7 @@ const Hackaton = {
 		if (!this.state.hasGameStarted) return this.startGame();
 		if (!this.state.isGameRunning) return;
 		if (this.runner.crashed) {
+			this.removeAllTrackerEventsHooks();
 			this.state.hasGameStarted = false;
 			this.state.isGameRunning = false;
 			return debug("DEBUG : Game Over");
@@ -59,7 +74,7 @@ const Hackaton = {
 	 */
 	startGame() {
 		// return this.init(); // bypass the T-posing test
-		if (this.state.internalCounter > this.conf.tPoseThreshold) {
+		if (this.state.internalCounter > this.conf.tPoseCounterLimit) {
 			this.state.internalCounter = 0;
 			this.init();
 			return true;
@@ -113,7 +128,31 @@ const Hackaton = {
 		let thresholdValue =
 			okState === "above" ? refPoint[axis] + this.conf[threshold] : refPoint[axis] - this.conf[threshold];
 		this.state[threshold] = { axis, okState, value: thresholdValue };
+		if (this.conf.drawThresholdLines) {
+			const drawHook = () => {
+				if (axis === "x") {
+					this.drawLine(
+						this.tracker.scaleX(thresholdValue),
+						0,
+						this.tracker.scaleX(thresholdValue),
+						this.tracker.canvas.height
+					);
+				} else {
+					this.drawLine(
+						0,
+						this.tracker.scaleY(thresholdValue),
+						this.tracker.canvas.width,
+						this.tracker.scaleY(thresholdValue)
+					);
+				}
+			};
+			this.state.trackerOrEvents.push({ event: "beforeupdate", hook: drawHook });
+			this.tracker.on("beforeupdate", drawHook);
+		}
 		return this.state[threshold];
+	},
+	removeAllTrackerEventsHooks() {
+		this.state.trackerOrEvents.forEach((el) => this.tracker.off(el.event, el.hook));
 	},
 	/**
 	 * Checks for actions (1 max by frame) and stoping previous one if it is not the same.
@@ -126,7 +165,6 @@ const Hackaton = {
 				debug("DEBUG : action :", action.key, "fired");
 				actionCancelState++;
 				if (action.key !== this.state.lastAction?.key) {
-					debug("diff");
 					if (this.state.lastAction) {
 						this[this.state.lastAction.stop]();
 						this.state.lastAction.cancelled = true;
@@ -203,7 +241,7 @@ const Hackaton = {
 		let { y: s } = shoulder;
 		let { y: e } = elbow;
 		let { y: w } = wrist;
-		let yOff = this.conf.tPoseYOffset;
+		let yOff = this.conf.tPoseArmYOffset;
 		return this.between(s, e - yOff, e + yOff) && this.between(e, w - yOff, w + yOff);
 	},
 	/**
@@ -216,6 +254,24 @@ const Hackaton = {
 	 */
 	between(value, min, max, strict = false) {
 		return strict ? min < value && value < max : min <= value && value <= max;
+	},
+	/**
+	 * Draws a line on the canvas
+	 * @param {number} fromX Starting point's width value
+	 * @param {number} fromY Starting point's height value
+	 * @param {number} toX Ending point's width value
+	 * @param {number} toY Ending point's height value
+	 * @param {string} color Line's color
+	 */
+	drawLine(fromX, fromY, toX, toY, color = "grey") {
+		var ctx = this.getCanvasOrContext(true);
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = color;
+		ctx.beginPath();
+		ctx.moveTo(fromX, fromY);
+		ctx.lineTo(toX, toY);
+		ctx.stroke();
+		ctx.closePath();
 	},
 };
 

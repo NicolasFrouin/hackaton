@@ -1426,6 +1426,14 @@ const tracker = {
         tracker.hooks[name].push(hook);
     },
 
+    off: function(name, hook) {
+        if (typeof tracker.hooks[name] === 'undefined') {
+            return;
+        }
+        let hookIndex = tracker.hooks[name].findIndex((fn) => fn.toString() === hook.toString());
+        hookIndex > -1 && tracker.hooks[name].splice(hookIndex, 1);
+    },
+
     /*
         Dispatch hook/event
      */
