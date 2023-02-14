@@ -70,6 +70,8 @@
 		} else {
 			this.loadImages();
 		}
+
+		this.keycodes = Runner.keycodes;
 	}
 	window["Runner"] = Runner;
 
@@ -2741,7 +2743,7 @@
 })();
 
 function onDocumentLoad() {
-	new Runner(".interstitial-wrapper");
+	window["RunnerApp"] = new Runner(".interstitial-wrapper");
 }
 
 document.addEventListener("DOMContentLoaded", onDocumentLoad);

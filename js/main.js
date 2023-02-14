@@ -1,27 +1,148 @@
-console.log("App running");
-
+const DEBUG_MODE = true;
 const Hackaton = {
 	poses: null,
 	pose: null,
+	keypoints: null,
+	runner: null,
 	state: {
 		hasGameStarted: false,
 		hasTPosed: false,
+		internalCounter: 0,
+		isGameRunning: false,
+		shoulderRefPoint: { x: null, y: null },
+		jumpThreshold: null,
+		crouchThreshold: null,
+		lastAction: null,
 	},
+	actions: [
+		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
+		{ key: "crouch", test: "isCrouching", exec: "crouch", stop: "stopCrouch" },
+		// { key: "right", test: "isRighting", exec: "right", stop: "stopRight" },
+		// { key: "left", test: "isLefting", exec: "left", stop: "stopLeft" },
+	],
 	conf: {
 		minScore: 0.35,
 		tPoseYOffset: 100,
+		tPoseThreshold: 15,
+		jumpThreshold: 50,
+		crouchThreshold: 50,
 	},
 	runApp(poses) {
+		this.runner = window["RunnerApp"];
 		if (poses.length > 1) return;
+		if (!poses?.[0]?.keypoints) return;
 		this.poses = poses;
 		this.pose = poses[0];
-		this.isTPosing(poses);
+		this.keypoints = poses[0].keypoints;
+		if (!this.state.hasGameStarted) return this.startGame();
+		if (!this.state.isGameRunning) return;
+		if (this.runner.crashed) {
+			this.state.hasGameStarted = false;
+			this.state.isGameRunning = false;
+			return debug("DEBUG : Game Over");
+		}
+		this.doActions();
+	},
+	startGame() {
+		return this.init();
+		if (this.state.internalCounter > this.conf.tPoseThreshold) {
+			this.state.internalCounter = 0;
+			this.init();
+			return true;
+		}
+		if (this.isTPosing()) this.state.internalCounter++;
+		else this.state.internalCounter = 0;
+		return false;
+	},
+	init() {
+		let shoulderRef = this.setShoulderRef();
+		this.setStateThreshold("jumpThreshold", shoulderRef, "y", "below");
+		this.setStateThreshold("crouchThreshold", shoulderRef, "y", "above");
+		this.state.hasGameStarted = true;
+		this.state.isGameRunning = true;
+		debug("___ GAME STARTED ___");
+		this.runner.playIntro();
+		this.jump(); // update the t-rex
+		return true;
+	},
+	getShoulderRef() {
+		const [, , , , , l_shoulder, r_shoulder] = this.keypoints;
+		return { x: Math.floor((l_shoulder.x + r_shoulder.x) / 2), y: Math.floor((l_shoulder.y + r_shoulder.y) / 2) };
+	},
+	setShoulderRef() {
+		this.state.shoulderRefPoint = this.getShoulderRef();
+		return this.state.shoulderRefPoint;
+	},
+	/**
+	 * Sets a state's threshold from a reference point
+	 *
+	 * /!\ y axis is inverted : a point above an other will have a lower value
+	 * @param {string} threshold Name of the state's threshold
+	 * @param {object} refPoint The reference point
+	 * @param {char} axis 'x' | 'y'
+	 * @param {string} okState 'above' | 'below'
+	 * @returns The updated state's threshold
+	 */
+	setStateThreshold(threshold, refPoint, axis, okState) {
+		let thresholdValue =
+			okState === "above" ? refPoint[axis] + this.conf[threshold] : refPoint[axis] - this.conf[threshold];
+		this.state[threshold] = { axis, okState, value: thresholdValue };
+		return this.state[threshold];
+	},
+	doActions() {
+		let actionCancelState = 0;
+		for (const action of this.actions) {
+			if (this[action.test]()) {
+				debug("DEBUG : action :", action.key, "fired");
+				actionCancelState++;
+				if (action.key !== this.state.lastAction?.key) {
+					debug("diff");
+					if (this.state.lastAction) {
+						this[this.state.lastAction.stop]();
+						this.state.lastAction.cancelled = true;
+					}
+				}
+				this[action.exec]();
+				this.state.lastAction = { ...action, cancelled: false };
+				break;
+			}
+		}
+		if (this.state.lastAction) {
+			if (actionCancelState == 0 && this.state.lastAction?.stop && this.state.lastAction.cancelled === false) {
+				this[this.state.lastAction.stop]();
+				this.state.lastAction.cancelled = true;
+			}
+		}
+	},
+	isJumping() {
+		return this.getShoulderRef()[this.state.jumpThreshold.axis] < this.state.jumpThreshold.value;
+	},
+	isCrouching() {
+		return this.getShoulderRef()[this.state.crouchThreshold.axis] > this.state.crouchThreshold.value;
+	},
+	jump() {
+		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: jumpKeyCode }));
+	},
+	stopJump() {
+		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
+		debug("DEBUG : stop JUMP");
+	},
+	crouch() {
+		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: jumpKeyCode }));
+	},
+	stopCrouch() {
+		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
+		debug("DEBUG : stop CROUCH");
 	},
 	logPoses() {
 		console.log("_______________");
 		for (const pose of this.poses) {
 			for (const kp of pose.keypoints) {
-				if (kp.score > 0.35) {
+				if (kp.score > this.conf.minScore) {
 					console.log(kp.name + " ->", "x :", Math.floor(kp.x), "y :", Math.floor(kp.y));
 				}
 			}
@@ -29,9 +150,7 @@ const Hackaton = {
 		console.log("---------------");
 	},
 	isTPosing() {
-		const pose = this.pose;
-		if (!pose.keypoints) return false;
-		const [nose, , , , , l_shoulder, r_shoulder, l_elbow, r_elbow, l_wrist, r_wrist] = pose.keypoints;
+		const [nose, , , , , l_shoulder, r_shoulder, l_elbow, r_elbow, l_wrist, r_wrist] = this.keypoints;
 		const bothArms = [r_shoulder, r_elbow, r_wrist, l_shoulder, l_elbow, l_wrist];
 		if (bothArms.some((kp) => !this.isAboveMinScore(kp))) return false;
 		if (bothArms.some((kp) => kp.y < nose.y)) return false;
@@ -39,7 +158,6 @@ const Hackaton = {
 		if (r_shoulder.x < r_elbow.x || r_elbow.x < r_wrist.x) return false;
 		if (!this.isArmFlat(r_shoulder, r_elbow, r_wrist) || !this.isArmFlat(l_shoulder, l_elbow, l_wrist))
 			return false;
-		console.log("T");
 		this.state.hasTPosed = true;
 		return true;
 	},
@@ -58,112 +176,4 @@ const Hackaton = {
 	},
 };
 
-const mock = [
-	{
-		keypoints: [
-			{
-				y: 346.4172685045652,
-				x: 606.3789437274926,
-				score: 0.7547693848609924,
-				name: "nose",
-			},
-			{
-				y: 314.7816174809081,
-				x: 640.7472467425196,
-				score: 0.6398158669471741,
-				name: "left_eye",
-			},
-			{
-				y: 318.025121665049,
-				x: 577.3207058881414,
-				score: 0.7796675562858582,
-				name: "right_eye",
-			},
-			{
-				y: 329.34953816754654,
-				x: 692.4856387464677,
-				score: 0.5414053797721863,
-				name: "left_ear",
-			},
-			{
-				y: 335.6528737508478,
-				x: 551.9067460365682,
-				score: 0.5698563456535339,
-				name: "right_ear",
-			},
-			{
-				y: 444.04272677492384,
-				x: 789.8489798901917,
-				score: 0.7550020813941956,
-				name: "left_shoulder",
-			},
-			{
-				y: 426.0885481231481,
-				x: 484.51607429636476,
-				score: 0.6698603630065918,
-				name: "right_shoulder",
-			},
-			{
-				y: 446.16643040386964,
-				x: 982.5785974910841,
-				score: 0.7086151242256165,
-				name: "left_elbow",
-			},
-			{
-				y: 437.53656030055623,
-				x: 304.20555952348815,
-				score: 0.7144396305084229,
-				name: "right_elbow",
-			},
-			{
-				y: 436.05452134439895,
-				x: 1205.828035141831,
-				score: 0.448592871427536,
-				name: "left_wrist",
-			},
-			{
-				y: 416.6485518583976,
-				x: 105.54834185050531,
-				score: 0.6267268657684326,
-				name: "right_wrist",
-			},
-			{
-				y: 748.4734800003864,
-				x: 736.7329314067132,
-				score: 0.587343692779541,
-				name: "left_hip",
-			},
-			{
-				y: 752.9216078674978,
-				x: 531.4392415989228,
-				score: 0.628291130065918,
-				name: "right_hip",
-			},
-			{
-				y: 686.4601963930171,
-				x: 788.8826632454029,
-				score: 0.11447647213935852,
-				name: "left_knee",
-			},
-			{
-				y: 694.5410483572409,
-				x: 510.1213591414145,
-				score: 0.10901930928230286,
-				name: "right_knee",
-			},
-			{
-				y: 536.7385754718341,
-				x: 853.9509133511991,
-				score: 0.0153295723721385,
-				name: "left_ankle",
-			},
-			{
-				y: 430.6864829979332,
-				x: 94.06756889194915,
-				score: 0.033761534839868546,
-				name: "right_ankle",
-			},
-		],
-		score: 0.6480297148227692,
-	},
-];
+const debug = (...args) => DEBUG_MODE && console.log(...args);
