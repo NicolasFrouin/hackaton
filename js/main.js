@@ -14,6 +14,12 @@ const Hackaton = {
 		crouchThreshold: null,
 		lastAction: null,
 	},
+	/**
+	 * Every possible actions to be performed with :
+	 * - the test function (checks if player is able the perform the action)
+	 * - the exec function (executes if test is successfull)
+	 * - the stop function (executes to terminate the action)
+	 */
 	actions: [
 		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
 		{ key: "crouch", test: "isCrouching", exec: "crouch", stop: "stopCrouch" },
@@ -27,6 +33,10 @@ const Hackaton = {
 		jumpThreshold: 50,
 		crouchThreshold: 50,
 	},
+	/**
+	 * Game loop function running every frame
+	 * @param {object} poses Tracker's body poses
+	 */
 	runApp(poses) {
 		this.runner = window["RunnerApp"];
 		if (poses.length > 1) return;
@@ -43,8 +53,12 @@ const Hackaton = {
 		}
 		this.doActions();
 	},
+	/**
+	 * Tests that the player is T-posing for n frames consecutive to avoid accidental starts
+	 * @returns {boolean} Can the game be launched ?
+	 */
 	startGame() {
-		return this.init();
+		// return this.init(); // bypass the T-posing test
 		if (this.state.internalCounter > this.conf.tPoseThreshold) {
 			this.state.internalCounter = 0;
 			this.init();
@@ -54,6 +68,10 @@ const Hackaton = {
 		else this.state.internalCounter = 0;
 		return false;
 	},
+	/**
+	 * Initializes the app by setting the thresholds and starting the game
+	 * @returns {boolean} Is the app initialized ?
+	 */
 	init() {
 		let shoulderRef = this.setShoulderRef();
 		this.setStateThreshold("jumpThreshold", shoulderRef, "y", "below");
@@ -65,10 +83,18 @@ const Hackaton = {
 		this.jump(); // update the t-rex
 		return true;
 	},
+	/**
+	 * Gets the reference point to track body movments from
+	 * @returns Object with x and y coordinates of the reference point
+	 */
 	getShoulderRef() {
 		const [, , , , , l_shoulder, r_shoulder] = this.keypoints;
 		return { x: Math.floor((l_shoulder.x + r_shoulder.x) / 2), y: Math.floor((l_shoulder.y + r_shoulder.y) / 2) };
 	},
+	/**
+	 * Sets the reference point in the app state
+	 * @returns The reference point
+	 */
 	setShoulderRef() {
 		this.state.shoulderRefPoint = this.getShoulderRef();
 		return this.state.shoulderRefPoint;
@@ -89,6 +115,10 @@ const Hackaton = {
 		this.state[threshold] = { axis, okState, value: thresholdValue };
 		return this.state[threshold];
 	},
+	/**
+	 * Checks for actions (1 max by frame) and stoping previous one if it is not the same.
+	 * Allows to separate actions in start and end.
+	 */
 	doActions() {
 		let actionCancelState = 0;
 		for (const action of this.actions) {
@@ -114,11 +144,9 @@ const Hackaton = {
 			}
 		}
 	},
+	//#region Actions
 	isJumping() {
 		return this.getShoulderRef()[this.state.jumpThreshold.axis] < this.state.jumpThreshold.value;
-	},
-	isCrouching() {
-		return this.getShoulderRef()[this.state.crouchThreshold.axis] > this.state.crouchThreshold.value;
 	},
 	jump() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
@@ -127,7 +155,9 @@ const Hackaton = {
 	stopJump() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
 		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
-		debug("DEBUG : stop JUMP");
+	},
+	isCrouching() {
+		return this.getShoulderRef()[this.state.crouchThreshold.axis] > this.state.crouchThreshold.value;
 	},
 	crouch() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
@@ -136,19 +166,12 @@ const Hackaton = {
 	stopCrouch() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
 		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
-		debug("DEBUG : stop CROUCH");
 	},
-	logPoses() {
-		console.log("_______________");
-		for (const pose of this.poses) {
-			for (const kp of pose.keypoints) {
-				if (kp.score > this.conf.minScore) {
-					console.log(kp.name + " ->", "x :", Math.floor(kp.x), "y :", Math.floor(kp.y));
-				}
-			}
-		}
-		console.log("---------------");
-	},
+	//#endregion
+	/**
+	 * Checks if the player is T-posing
+	 * @returns {boolean} Is the player T-posing ?
+	 */
 	isTPosing() {
 		const [nose, , , , , l_shoulder, r_shoulder, l_elbow, r_elbow, l_wrist, r_wrist] = this.keypoints;
 		const bothArms = [r_shoulder, r_elbow, r_wrist, l_shoulder, l_elbow, l_wrist];
@@ -161,9 +184,21 @@ const Hackaton = {
 		this.state.hasTPosed = true;
 		return true;
 	},
+	/**
+	 * Compares the keypoint's score with the minimal score from the app conf
+	 * @param {object} keypoint The keypoint to test
+	 * @returns {boolean} Is the keypoint's score hight enough
+	 */
 	isAboveMinScore(keypoint) {
 		return keypoint.score > this.conf.minScore;
 	},
+	/**
+	 * Checks if the 3 points are roughly aligned
+	 * @param {object} shoulder The shoulder object of the same arm
+	 * @param {object} elbow The elbow object of the same arm
+	 * @param {object} wrist The wrist object of the same arm
+	 * @returns {boolean} Is arm flat ?
+	 */
 	isArmFlat(shoulder, elbow, wrist) {
 		let { y: s } = shoulder;
 		let { y: e } = elbow;
@@ -171,6 +206,14 @@ const Hackaton = {
 		let yOff = this.conf.tPoseYOffset;
 		return this.between(s, e - yOff, e + yOff) && this.between(e, w - yOff, w + yOff);
 	},
+	/**
+	 * Evaluates if value is between min and max
+	 * @param {number} value The value to evaluate
+	 * @param {number} min The lower end
+	 * @param {number} max The higher end
+	 * @param {boolean} strict Is the comparaison strict ? ('<=' or '<')
+	 * @returns {boolean} Is the value between min and max ?
+	 */
 	between(value, min, max, strict = false) {
 		return strict ? min < value && value < max : min <= value && value <= max;
 	},
