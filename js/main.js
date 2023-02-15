@@ -25,8 +25,8 @@ const Hackaton = {
 	actions: [
 		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
 		{ key: "crouch", test: "isCrouching", exec: "crouch", stop: "stopCrouch" },
-		// { key: "right", test: "isRighting", exec: "right", stop: "stopRight" },
-		// { key: "left", test: "isLefting", exec: "left", stop: "stopLeft" },
+		// { key: "goRight", test: "isGoingRigh", exec: "goRight", stop: "stopGoingRight" },
+		// { key: "goLeft", test: "isGoingLeft", exec: "goLeft", stop: "stopGoingLeft" },
 	],
 	conf: {
 		minScore: 0.35,
@@ -275,3 +275,17 @@ const Hackaton = {
 };
 
 const debug = (...args) => DEBUG_MODE && console.log(...args);
+
+$(() => {
+	$("#disable-camera").click(function () {
+		that = $(this);
+		that.toggleClass("disabled");
+		if (that.hasClass("disabled")) {
+			that.text("Caméra désactivée");
+			Hackaton.tracker.video.srcObject.getTracks().forEach((t) => t.stop());
+		} else {
+			that.text("Caméra activée");
+			Hackaton.tracker.initCamera();
+		}
+	});
+});
