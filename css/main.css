@@ -1,3 +1,15 @@
+:root {
+	--cameraHeight: 30vh;
+	--cameraWidth: calc(var(--cameraHeight) * 16 / 9);
+	--cameraBtnDisable: 7vh;
+	--leaderboardHeight: 70vh;
+	--leaderboardWidth: calc(var(--leaderboardHeight) * 16 / 9);
+}
+
+* {
+	box-sizing: border-box;
+}
+
 .gh,
 #info_counter,
 #info_debug {
@@ -44,44 +56,48 @@
 }
 
 #canvas {
-	height: 50vh !important;
-	width: calc(50vh * 16 / 9) !important;
+	height: var(--cameraHeight) !important;
+	width: var(--cameraWidth) !important;
 	background-color: rgba(128, 128, 128, 0.5);
 }
 
-#disable-camera {
+button#disable-camera {
 	position: absolute;
-	height: 7vh;
-	width: 7vw;
+	height: var(--cameraBtnDisable);
+	width: calc(var(--cameraBtnDisable) * 16 / 9);
 	background-color: rgb(61, 141, 61);
 	z-index: 15;
-	top: 50vh;
-	right: calc(50vh * 16 / 9 - 7vw);
-	line-height: 1rem;
+	top: calc(100vh - var(--cameraHeight));
+	right: calc(var(--cameraWidth) - (var(--cameraBtnDisable) * 16 / 9));
+	line-height: 1.5rem;
 	color: white;
 }
-
 .disabled {
 	background-color: rgb(175, 38, 59) !important;
 }
 
-#difficultyContainer {
-	background-color: brown;
+#options {
+	width: calc(100vw - var(--cameraWidth));
+	height: 7vh;
 	display: flex;
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	z-index: 15;
-	width: 45vw;
+	justify-content: space-between;
+	font-size: x-large;
+}
+#difficultyContainer {
+	background-color: brown;
+	display: flex;
+	flex: 1;
 	justify-content: space-between;
 	align-items: center;
-	height: 7vh;
 	font-size: x-large;
 	padding-inline: 2rem;
 	font-weight: bolder;
 	border-top-right-radius: 2rem;
 }
-
 #difficultyChoices > span {
 	margin-inline: 1rem;
 }
@@ -89,4 +105,32 @@
 	padding-inline: 0.5rem;
 	border-radius: 1rem;
 	min-width: 3rem;
+}
+#leaderboard {
+	display: flex;
+	flex: 1;
+	justify-content: space-evenly;
+	align-items: center;
+}
+#leaderboard > button {
+	height: 100%;
+	border-radius: 1rem;
+	width: 30%;
+	background-color: blue;
+	line-height: 1.5rem;
+	color: white;
+}
+#canvasLeaderboardContainer {
+	transition: all 300ms ease-in-out;
+	position: absolute;
+	height: 0;
+	width: 0;
+	z-index: 20;
+	background-color: rgb(40, 40, 40);
+	top: calc((80vh - var(--leaderboardHeight)) / 2);
+	left: calc((80vw - var(--leaderboardWidth)) / 2);
+}
+#canvasLeaderboardContainer.opened {
+	height: var(--leaderboardHeight) !important;
+	width: var(--leaderboardWidth) !important;
 }

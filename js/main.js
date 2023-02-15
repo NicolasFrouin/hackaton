@@ -17,6 +17,7 @@ const Hackaton = {
 		lastAction: null,
 		currentDifficulty: 100,
 		thresholds: {},
+		scoreHistory: [],
 	},
 	/**
 	 * Every possible actions to be performed with :
@@ -83,6 +84,7 @@ const Hackaton = {
 		if (!this.state.isGameRunning) return;
 		if (this.runner.crashed) {
 			this.removeAllTrackerEventsHooks();
+			this.saveScore();
 			this.state.hasGameStarted = false;
 			this.state.isGameRunning = false;
 			return debug("DEBUG : Game Over");
@@ -94,7 +96,7 @@ const Hackaton = {
 	 * @returns {boolean} Can the game be launched ?
 	 */
 	startGame() {
-		// return this.init(); // bypass the T-posing test
+		return this.init(); // bypass the T-posing test
 		if (this.state.internalCounter > this.conf.tPoseCounterLimit) {
 			this.state.internalCounter = 0;
 			this.init();
@@ -111,15 +113,21 @@ const Hackaton = {
 	 */
 	init() {
 		this.removeAllTrackerEventsHooks();
-		let shoulderRef = this.setShoulderRef();
-		this.setStateThreshold("jumpThreshold", shoulderRef, "y", "below");
-		this.setStateThreshold("crouchThreshold", shoulderRef, "y", "above");
+		this.setShoulderRef();
+		this.setStateThreshold();
 		this.state.hasGameStarted = true;
 		this.state.isGameRunning = true;
 		debug("___ GAME STARTED ___");
 		this.runner.playIntro();
 		this.jump(); // update the t-rex
 		return true;
+	},
+	saveScore() {
+		console.log(this.runner.distanceRan);
+		this.state.scoreHistory.push({ difficulty: this.state.currentDifficulty, score: this.runner.distanceRan });
+	},
+	resetHistory() {
+		this.state.scoreHistory = [];
 	},
 	difficultyDraw() {
 		let refPoint = this.getShoulderRef();
@@ -210,8 +218,9 @@ const Hackaton = {
 	 */
 	doActions() {
 		let actionCancelState = 0;
+		const refPoint = this.getShoulderRef();
 		for (const action of this.actions) {
-			if (this[action.test]()) {
+			if (this[action.test](refPoint)) {
 				debug("DEBUG : action :", action.key, "fired");
 				actionCancelState++;
 				if (action.key !== this.state.lastAction?.key) {
@@ -233,8 +242,8 @@ const Hackaton = {
 		}
 	},
 	//#region Actions
-	isJumping() {
-		return this.getShoulderRef().y < this.state.thresholds["jump"];
+	isJumping(refPoint) {
+		return refPoint.y < this.state.thresholds["jump"];
 	},
 	jump() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
@@ -244,8 +253,8 @@ const Hackaton = {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
 		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
 	},
-	isCrouching() {
-		return this.getShoulderRef().y > this.state.thresholds["crouch"];
+	isCrouching(refPoint) {
+		return refPoint.y > this.state.thresholds["crouch"];
 	},
 	crouch() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
@@ -328,6 +337,7 @@ const Hackaton = {
 const debug = (...args) => DEBUG_MODE && console.log(...args);
 
 $(() => {
+	var myChart;
 	$("#disable-camera").click(function () {
 		that = $(this);
 		that.toggleClass("disabled");
@@ -350,12 +360,33 @@ $(() => {
 		if (Hackaton.state.currentDifficulty > Hackaton.conf.difficultyStep)
 			Hackaton.state.currentDifficulty -= Hackaton.conf.difficultyStep;
 	});
+	$("#btnResetLeaderboard").click(() => Hackaton.resetHistory());
+	$("#btnLeaderboard").click(() => {
+		const leaderboardContainer = $("#canvasLeaderboardContainer");
+		leaderboardContainer.toggleClass("opened");
+		if (leaderboardContainer.hasClass("opened")) {
+			leaderboardContainer.append('<canvas id="canvasLeaderboard"></canvas>');
+			myChart = new Chart($("#canvasLeaderboard"), {
+				type: "line",
+				data: {
+					labels: Hackaton.state.scoreHistory.map((s) => s.difficulty),
+					datasets: [
+						{
+							label: "Évolution des scores",
+							data: Hackaton.state.scoreHistory.map((s) => s.score),
+							borderWidth: 1,
+						},
+					],
+				},
+				options: { scales: { y: { beginAtZero: true } } },
+			});
+		} else {
+			$("#canvasLeaderboard").remove();
+		}
+	});
 });
 
 /*
-ajout de difficulté {
-	boutons + et - => facile / normal / difficile
-}
 leaderboard avec chart {
 	score + difficulté
 }

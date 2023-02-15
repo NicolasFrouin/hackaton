@@ -16,6 +16,7 @@
 	<link href="./common/css/font.css" rel="stylesheet">
 	<link rel="stylesheet" href="./css/main.css">
 
+	<script src="./common/js/chartjs4.2.1.min.js"></script>
 	<script src="./common/js/video.min.js"></script>
 	<script src="./common/js/jquery3.6.3.min.js"></script>
 	<script src="./js/game/game.js"></script>
@@ -25,16 +26,25 @@
 
 <body>
 	<div id="background"></div>
-	<div id="difficultyContainer">
-		<span>Difficulté</span>
-		<div id="difficultyChoices">
-			<button id="btnDiffEasy">Facile</button>
-			<button id="btnDiffNormal">Normal</button>
-			<button id="btnDiffHard">Difficile</button>
-			<span></span>
-			<button id="btnDiffAdd">+</button>
-			<button id="btnDiffLess">-</button>
+	<div id="options">
+		<div id="difficultyContainer">
+			<span>Difficulté</span>
+			<div id="difficultyChoices">
+				<button id="btnDiffEasy">Facile</button>
+				<button id="btnDiffNormal">Normal</button>
+				<button id="btnDiffHard">Difficile</button>
+				<span></span>
+				<button id="btnDiffAdd">+</button>
+				<button id="btnDiffLess">-</button>
+			</div>
 		</div>
+		<div id="leaderboard">
+			<button id="btnLeaderboard">Tableau des scores</button>
+			<button id="btnResetLeaderboard">Réinitialiser les scores</button>
+		</div>
+	</div>
+	<div id="canvasLeaderboardContainer">
+		<canvas id="canvasLeaderboard"></canvas>
 	</div>
 	<div id="game">
 		<div id="messageBox" class="sendmessage">
