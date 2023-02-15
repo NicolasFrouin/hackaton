@@ -21,7 +21,6 @@ const Hackaton = {
 	 * - the test function (checks if player is able the perform the action)
 	 * - the exec function (executes if test is successfull)
 	 * - the stop function (executes to terminate the action)
-	 * - the color of the threshold line on the canvas
 	 */
 	actions: [
 		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
