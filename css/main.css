@@ -32,8 +32,8 @@
 }
 
 .runner-canvas {
-	aspect-ratio: 4/1;
-	height: 40vh;
+	height: 40vh !important;
+	width: calc(40vh * 4) !important;
 }
 
 #wrapper {
