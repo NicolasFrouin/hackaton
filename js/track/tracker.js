@@ -607,7 +607,8 @@ const tracker = {
         Run predictions
      */
     run: function(source) {
-        switch (source) {
+        tracker.initCamera();
+/*         switch (source) {
             case 'video':
                 tracker.initVideo();
                 break;
@@ -617,7 +618,7 @@ const tracker = {
             case 'stream':
                 tracker.initStream();
                 break;
-        }
+        } */
     },
 
     /*
@@ -1449,8 +1450,17 @@ const tracker = {
     /*
         Pre-initialize model by name
      */
-    setModel: function(model) {
-        switch (model) {
+    setModel: function() {
+        tracker.detectorModel = poseDetection.SupportedModels.MoveNet;
+        tracker.detectorConfig = {
+            modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+            enableSmoothing: true,
+            multiPoseMaxDimension: 256,
+            enableTracking: true,
+            trackerType: poseDetection.TrackerType.BoundingBox
+        }
+        tracker.minScore = 0.35;
+        /* switch (model) {
             case 'BlazePoseLite':
                 tracker.detectorModel = poseDetection.SupportedModels.BlazePose;
                 tracker.detectorConfig = {
@@ -1482,15 +1492,7 @@ const tracker = {
                 break;
 
             case 'MoveNetSinglePoseLightning':
-                tracker.detectorModel = poseDetection.SupportedModels.MoveNet;
-                tracker.detectorConfig = {
-                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-                    enableSmoothing: true,
-                    multiPoseMaxDimension: 256,
-                    enableTracking: true,
-                    trackerType: poseDetection.TrackerType.BoundingBox
-                }
-                tracker.minScore = 0.35;
+                
                 break;
 
             case 'MoveNetMultiPoseLightning':
@@ -1545,6 +1547,6 @@ const tracker = {
                 }
                 tracker.minScore = 0.5;
                 break;
-        }
+        } */
     },
 }

@@ -173,3 +173,25 @@ body {
 	transition: transform 250ms cubic-bezier(0.4, 0, 1, 1) 400ms;
 	z-index: 2;
 }
+
+#content {
+	min-width: 500px;
+	min-height: 300px;
+	border: 1px solid red;
+	resize: both;
+	overflow: auto;
+  
+	position: fixed;
+	z-index: 9999;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	cursor: move;
+}
+.wrapper {
+	width: 100%;
+}
+.webcam_off {
+	border: unset !important;
+	overflow: unset !important;
+}

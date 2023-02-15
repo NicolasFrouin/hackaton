@@ -1,170 +1,51 @@
-// Copyright Marcin "szczyglis" Szczyglinski, 2022. All Rights Reserved.
-// Email: szczyglis@protonmail.com
-// WWW: https://github.com/szczyglis-dev/js-ai-body-tracker
-// Library: app.js
-// Version: 1.0.0
-// This file is licensed under the MIT License.
-// License text available at https://opensource.org/licenses/MIT
-
 const app = {
     debug: false, // bool, enable/disable debug
     init: function() {
-        // get selected model name from URL query string
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('model')) {
-            model = params.get('model');
+        const webcam = document.getElementById('content');
+
+        // Variables pour stocker la position de départ de la div
+        let startX, startY;
+
+        // Fonction qui sera appelée lorsque l'utilisateur commence à déplacer la div
+        function startDrag(e) {
+            startX = e.clientX - webcam.offsetLeft;
+            startY = e.clientY - webcam.offsetTop;
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
         }
 
-        // get selected source from URL query string
-        if (params.has('source')) {
-            source = params.get('source');
+        // Fonction qui sera appelée pendant que l'utilisateur déplace la div
+        function drag(e) {
+            webcam.style.left = e.clientX - startX + 'px';
+            webcam.style.top = e.clientY - startY + 'px';
         }
 
-        // get defined video/stream URL from URL query string
-        if (params.has('url')) {
-            sourceVideo = params.get('url');
+        // Fonction qui sera appelée lorsque l'utilisateur arrête de déplacer la div
+        function stopDrag() {
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
         }
 
-        // update active
-        document.getElementById('model_select').value = model;
-        document.getElementById('source-' + source).classList.add('active');
+        // Événement qui démarre le drag and drop
+        webcam.addEventListener('dragstart', startDrag);
 
-        // append event listeners to source select buttons
-        const sources = document.querySelectorAll('.source-select');
-        sources.forEach(el => {
-            el.addEventListener('click', function(e) {
-                let href = '?model=' + model + '&source=' + this.getAttribute('data-source');
-                if (source == this.getAttribute('data-source')) {
-                    href = href + '&url=' + sourceVideo;
-                }
-                window.location.href = href;
-            });
-        });
-
-        // append event listener to model select
-        document.getElementById('model_select').addEventListener('change', function(e) {
-            const href = '?model=' + this.value + '&source=' + source + '&url=' + sourceVideo;
-            window.location.href = href;
-        });
-
-        // append event listener to load video URL button
-        document.getElementById('btn_load_src').addEventListener('change', function(e) {
-            sourceVideo = document.getElementById('video_src').value;
-        });
-
-        // update elements by source
-        switch (source) {
-            case 'camera':
-                document.getElementById('video_src_area').style.display = "none";
-                document.getElementById('canvas').classList.add('camera');
-                break;
-
-            case 'video':
-                document.getElementById('video_src_area').style.display = "block";
-                if (sourceVideo.trim() == '') {
-                    sourceVideo = defaultVideo;
-                }
-                document.getElementById('video').src = sourceVideo;
-                document.querySelector('#video source').src = sourceVideo;
-                document.getElementById('video_src').value = sourceVideo;
-                document.getElementById('video_src_prefix').innerHTML = 'MP4,AVI,MKV,WEBM';
-                document.getElementById('canvas').classList.add('clickable');
-
-                // change video source URL input
-                document.getElementById('btn_load_src').addEventListener('click', function() {
-                    const src = document.getElementById('video_src').value;
-                    tracker.loadVideo(src);
-                });
-                break;
-
-            case 'stream':
-                document.getElementById('video_src_area').style.display = "block";
-                if (sourceVideo.trim() == '') {
-                    sourceVideo = defaultStream;
-                }
-                document.querySelector('#video source').src = sourceVideo;
-                document.getElementById('video_src').value = sourceVideo;
-                document.getElementById('video_src_prefix').innerHTML = 'IPTV STREAM,m3u8';
-                document.getElementById('canvas').classList.add('clickable');
-
-                // change video source URL input
-                document.getElementById('btn_load_src').addEventListener('click', function() {
-                    const src = document.getElementById('video_src').value;
-                    tracker.loadStream(src);
-                });
-                break;
-        };
-
-        // ------------------------
-        // btn: AI TRACKING ON/OFF
-        document.getElementById('btn_toggle_ai').addEventListener('click', function() {
-            app.toggleAI();
-        });
-
-        // btn: DEBUG ON/OFF
-        document.getElementById('btn_toggle_debug').addEventListener('click', function() {
-            app.toggleDebug();
-        });
-
-        // btn: 3D VIEW ON/OFF
-        document.getElementById('btn_toggle_3d').addEventListener('click', function() {
-            app.toggle3D();
-        });
-
-        // btn: VIDEO ON/OFF
-        document.getElementById('btn_toggle_video').addEventListener('click', function() {
-            app.toggleVideo();
-        });
-
-        // btn: SHOW/HIDE CONTROLS
-        document.getElementById('btn_toggle_controls').addEventListener('click', function() {
-            app.toggleControls();
+        // btn: WebCam ON/OFF
+        document.getElementById('toggle_webcam').addEventListener('click', function (e) {
+            app.toggleWebcam(e);
         });
     },
 
     // handle toggle button
-    toggleAI: function() {
-        if (tracker.enableAI) {
-            tracker.enableAI = false;
-            console.log('AI ON');
+    toggleWebcam: function (e) {
+        const btn = e.target
+        if (btn.classList.contains("btn-primary")) {
+            document.getElementById('wrapper').classList.add("invisible")
+            document.getElementById('content').classList.add('webcam_off')
+            btn.classList.replace("btn-primary", "btn-danger")
         } else {
-            tracker.enableAI = true;
-            console.log('AI OFF');
-        }
-    },
-
-    // handle toggle button
-    toggleVideo: function() {
-        if (tracker.enableVideo) {
-            tracker.enableVideo = false;
-            console.log('Video OFF');
-        } else {
-            console.log('Video ON');
-            tracker.enableVideo = true;
-        }
-    },
-
-    // handle toggle button
-    toggle3D: function() {
-        if (tracker.detectorModel != poseDetection.SupportedModels.BlazePose) {
-            alert('3D is available for BlazePose model only!');
-            return;
-        }
-
-        if (tracker.scatterGL == null) {
-            console.error('ScatterGL is not initialized');
-            return;
-        }
-
-        if (tracker.enable3D) {
-            tracker.enable3D = false;
-            tracker.scatterGLEl.style.display = "none";
-            console.log('3D OFF');
-        } else {
-            console.log('3D ON');
-            tracker.enable3D = true;
-            tracker.scatterGLEl.style.display = "block";
-            tracker.scatterGL.resize();
+            document.getElementById('wrapper').classList.remove("invisible")
+            document.getElementById('content').classList.remove('webcam_off')
+            btn.classList.replace("btn-danger", "btn-primary")
         }
     },
 
@@ -177,16 +58,6 @@ const app = {
         } else {
             app.debug = true;
             console.log('Debug ON');
-        }
-    },
-
-    // handle toggle button
-    toggleControls: function() {
-        const controls = document.getElementById('controls');
-        if (controls.style.display == 'none') {
-            controls.style.display = 'block';
-        } else {
-            controls.style.display = 'none';
         }
     },
 

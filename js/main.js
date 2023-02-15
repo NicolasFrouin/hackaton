@@ -33,8 +33,8 @@ const Hackaton = {
 		minScore: 0.35,
 		tPoseArmYOffset: 50,
 		tPoseCounterLimit: 15,
-		jumpThreshold: 50,
-		crouchThreshold: 50,
+		jumpThreshold: 100,
+		crouchThreshold: 100,
 		drawThresholdLines: true,
 	},
 	/**
