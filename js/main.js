@@ -15,6 +15,8 @@ const Hackaton = {
 		jumpThreshold: null,
 		crouchThreshold: null,
 		lastAction: null,
+		currentDifficulty: 100,
+		thresholds: {},
 	},
 	/**
 	 * Every possible actions to be performed with :
@@ -23,8 +25,24 @@ const Hackaton = {
 	 * - the stop function (executes to terminate the action)
 	 */
 	actions: [
-		{ key: "jump", test: "isJumping", exec: "jump", stop: "stopJump" },
-		{ key: "crouch", test: "isCrouching", exec: "crouch", stop: "stopCrouch" },
+		{
+			key: "jump",
+			test: "isJumping",
+			exec: "jump",
+			stop: "stopJump",
+			axis: "y",
+			okState: "below",
+			color: "",
+		},
+		{
+			key: "crouch",
+			test: "isCrouching",
+			exec: "crouch",
+			stop: "stopCrouch",
+			axis: "y",
+			okState: "above",
+			color: "",
+		},
 		// { key: "goRight", test: "isGoingRigh", exec: "goRight", stop: "stopGoingRight" },
 		// { key: "goLeft", test: "isGoingLeft", exec: "goLeft", stop: "stopGoingLeft" },
 	],
@@ -32,9 +50,13 @@ const Hackaton = {
 		minScore: 0.35,
 		tPoseArmYOffset: 50,
 		tPoseCounterLimit: 15,
-		jumpThreshold: 50,
-		crouchThreshold: 50,
+		jumpThreshold: 150,
+		crouchThreshold: 150,
 		drawThresholdLines: true,
+		difficultyStep: 25,
+		easyDifficulty: 50,
+		normalDifficulty: 100,
+		hardDifficulty: 150,
 	},
 	/**
 	 * Gets the canvas or its context in which the tracker is rendered
@@ -78,6 +100,7 @@ const Hackaton = {
 			this.init();
 			return true;
 		}
+		this.difficultyDraw();
 		if (this.isTPosing()) this.state.internalCounter++;
 		else this.state.internalCounter = 0;
 		return false;
@@ -87,6 +110,7 @@ const Hackaton = {
 	 * @returns {boolean} Is the app initialized ?
 	 */
 	init() {
+		this.removeAllTrackerEventsHooks();
 		let shoulderRef = this.setShoulderRef();
 		this.setStateThreshold("jumpThreshold", shoulderRef, "y", "below");
 		this.setStateThreshold("crouchThreshold", shoulderRef, "y", "above");
@@ -96,6 +120,35 @@ const Hackaton = {
 		this.runner.playIntro();
 		this.jump(); // update the t-rex
 		return true;
+	},
+	difficultyDraw() {
+		let refPoint = this.getShoulderRef();
+		if (
+			!this.between(refPoint.x, 0, this.tracker.video.width) ||
+			!this.between(refPoint.y, 0, this.tracker.video.height)
+		)
+			return false;
+		for (const action of this.actions) {
+			let thresholdValue =
+				action.okState === "above"
+					? refPoint[action.axis] + this.state.currentDifficulty
+					: refPoint[action.axis] - this.state.currentDifficulty;
+			if (action.axis === "x") {
+				this.drawLine(
+					this.tracker.scaleX(thresholdValue),
+					0,
+					this.tracker.scaleX(thresholdValue),
+					this.tracker.canvas.height
+				);
+			} else {
+				this.drawLine(
+					0,
+					this.tracker.scaleY(thresholdValue),
+					this.tracker.canvas.width,
+					this.tracker.scaleY(thresholdValue)
+				);
+			}
+		}
 	},
 	/**
 	 * Gets the reference point to track body movments from
@@ -114,22 +167,19 @@ const Hackaton = {
 		return this.state.shoulderRefPoint;
 	},
 	/**
-	 * Sets a state's threshold from a reference point
+	 * Sets state's thresholds and draws them
 	 *
 	 * /!\ y axis is inverted : a point above an other will have a lower value
-	 * @param {string} threshold Name of the state's threshold
-	 * @param {object} refPoint The reference point
-	 * @param {char} axis 'x' | 'y'
-	 * @param {string} okState 'above' | 'below'
-	 * @returns The updated state's threshold
 	 */
-	setStateThreshold(threshold, refPoint, axis, okState) {
-		let thresholdValue =
-			okState === "above" ? refPoint[axis] + this.conf[threshold] : refPoint[axis] - this.conf[threshold];
-		this.state[threshold] = { axis, okState, value: thresholdValue };
-		if (this.conf.drawThresholdLines) {
+	setStateThreshold() {
+		let refPoint = this.state.shoulderRefPoint;
+		for (const action of this.actions) {
+			let thresholdValue =
+				action.okState === "above"
+					? refPoint[action.axis] + this.state.currentDifficulty
+					: refPoint[action.axis] - this.state.currentDifficulty;
 			const drawHook = () => {
-				if (axis === "x") {
+				if (action.axis === "x") {
 					this.drawLine(
 						this.tracker.scaleX(thresholdValue),
 						0,
@@ -145,13 +195,14 @@ const Hackaton = {
 					);
 				}
 			};
+			this.state.thresholds[action.key] = thresholdValue;
 			this.state.trackerOrEvents.push({ event: "beforeupdate", hook: drawHook });
 			this.tracker.on("beforeupdate", drawHook);
 		}
-		return this.state[threshold];
 	},
 	removeAllTrackerEventsHooks() {
 		this.state.trackerOrEvents.forEach((el) => this.tracker.off(el.event, el.hook));
+		this.state.trackerOrEvents = [];
 	},
 	/**
 	 * Checks for actions (1 max by frame) and stoping previous one if it is not the same.
@@ -183,7 +234,7 @@ const Hackaton = {
 	},
 	//#region Actions
 	isJumping() {
-		return this.getShoulderRef()[this.state.jumpThreshold.axis] < this.state.jumpThreshold.value;
+		return this.getShoulderRef().y < this.state.thresholds["jump"];
 	},
 	jump() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
@@ -194,7 +245,7 @@ const Hackaton = {
 		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
 	},
 	isCrouching() {
-		return this.getShoulderRef()[this.state.crouchThreshold.axis] > this.state.crouchThreshold.value;
+		return this.getShoulderRef().y > this.state.thresholds["crouch"];
 	},
 	crouch() {
 		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
@@ -288,4 +339,25 @@ $(() => {
 			Hackaton.tracker.initCamera();
 		}
 	});
+	$("#btnDiffEasy").click(() => (Hackaton.state.currentDifficulty = Hackaton.conf.easyDifficulty));
+	$("#btnDiffNormal").click(() => (Hackaton.state.currentDifficulty = Hackaton.conf.normalDifficulty));
+	$("#btnDiffHard").click(() => (Hackaton.state.currentDifficulty = Hackaton.conf.hardDifficulty));
+	$("#btnDiffAdd").click(() => {
+		if (Hackaton.state.currentDifficulty < Hackaton.tracker.video.height / 2)
+			Hackaton.state.currentDifficulty += Hackaton.conf.difficultyStep;
+	});
+	$("#btnDiffLess").click(() => {
+		if (Hackaton.state.currentDifficulty > Hackaton.conf.difficultyStep)
+			Hackaton.state.currentDifficulty -= Hackaton.conf.difficultyStep;
+	});
 });
+
+/*
+ajout de difficulté {
+	boutons + et - => facile / normal / difficile
+}
+leaderboard avec chart {
+	score + difficulté
+}
+
+*/

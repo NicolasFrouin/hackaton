@@ -64,3 +64,29 @@
 .disabled {
 	background-color: rgb(175, 38, 59) !important;
 }
+
+#difficultyContainer {
+	background-color: brown;
+	display: flex;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	z-index: 15;
+	width: 45vw;
+	justify-content: space-between;
+	align-items: center;
+	height: 7vh;
+	font-size: x-large;
+	padding-inline: 2rem;
+	font-weight: bolder;
+	border-top-right-radius: 2rem;
+}
+
+#difficultyChoices > span {
+	margin-inline: 1rem;
+}
+#difficultyChoices > button {
+	padding-inline: 0.5rem;
+	border-radius: 1rem;
+	min-width: 3rem;
+}
