@@ -19,9 +19,11 @@
 #background {
 	z-index: 10;
 	background-color: rgb(37, 27, 40);
-	height: 100%;
-	width: 100%;
+	height: 100vh;
+	width: 100vw;
 	position: absolute;
+	top: 0;
+	left: 0;
 }
 
 .runner-container,
@@ -49,13 +51,13 @@
 }
 
 #wrapper {
-	z-index: 12;
 	display: flex;
 	align-items: end;
 	justify-content: end;
 }
 
 #canvas {
+	z-index: 12;
 	height: var(--cameraHeight) !important;
 	width: var(--cameraWidth) !important;
 	background-color: rgba(128, 128, 128, 0.5);
@@ -144,7 +146,7 @@ button#disable-camera {
 	position: absolute;
 	height: 0;
 	width: 0;
-	z-index: 20;
+	z-index: 1;
 	background-color: rgb(40, 40, 40);
 	top: calc((80vh - var(--leaderboardHeight)) / 2);
 	left: calc((80vw - var(--leaderboardWidth)) / 2);
@@ -152,4 +154,12 @@ button#disable-camera {
 #canvasLeaderboardContainer.opened {
 	height: var(--leaderboardHeight) !important;
 	width: var(--leaderboardWidth) !important;
+	z-index: 20;
+}
+
+#unity-container {
+	position: absolute !important;
+	top: 50% !important;
+	left: 40% !important;
+	z-index: 11 !important;
 }

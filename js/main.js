@@ -132,7 +132,7 @@ const Hackaton = {
 	 * @returns {boolean} Can the game be launched ?
 	 */
 	startGame() {
-		return this.init(); // bypass the T-posing test
+		// return this.init(); // bypass the T-posing test
 		if (this.state.internalCounter > this.conf.tPoseCounterLimit) {
 			this.state.internalCounter = 0;
 			this.init();
@@ -324,7 +324,10 @@ const Hackaton = {
 		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.right }));
 	},
 	isGoingCenter(refPoint) {
-		return this.state.position !== "center";
+		return (
+			this.state.position !== "center" &&
+			between(refPoint.x, this.state.thresholds["left"], this.state.thresholds["right"])
+		);
 	},
 	goCenter() {
 		this.state.position = "center";
