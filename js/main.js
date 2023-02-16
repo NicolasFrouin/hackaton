@@ -18,12 +18,16 @@ const Hackaton = {
 		currentDifficulty: 100,
 		thresholds: {},
 		scoreHistory: [],
+		position: "center",
 	},
 	/**
 	 * Every possible actions to be performed with :
 	 * - the test function (checks if player is able the perform the action)
 	 * - the exec function (executes if test is successfull)
 	 * - the stop function (executes to terminate the action)
+	 * - the axis to check is the test
+	 * - the state to compare the axis on
+	 * - the color of the line
 	 */
 	actions: [
 		{
@@ -33,7 +37,7 @@ const Hackaton = {
 			stop: "stopJump",
 			axis: "y",
 			okState: "below",
-			color: "",
+			color: "red",
 		},
 		{
 			key: "crouch",
@@ -42,10 +46,35 @@ const Hackaton = {
 			stop: "stopCrouch",
 			axis: "y",
 			okState: "above",
+			color: "red",
+		},
+		{
+			key: "left",
+			test: "isGoingLeft",
+			exec: "goLeft",
+			stop: "stopGoingLeft",
+			axis: "x",
+			okState: "below",
+			color: "blue",
+		},
+		{
+			key: "right",
+			test: "isGoingRight",
+			exec: "goRight",
+			stop: "stopGoingRight",
+			axis: "x",
+			okState: "above",
+			color: "blue",
+		},
+		{
+			key: "center",
+			test: "isGoingCenter",
+			exec: "goCenter",
+			stop: "stopGoingCenter",
+			axis: "",
+			okState: "",
 			color: "",
 		},
-		// { key: "goRight", test: "isGoingRigh", exec: "goRight", stop: "stopGoingRight" },
-		// { key: "goLeft", test: "isGoingLeft", exec: "goLeft", stop: "stopGoingLeft" },
 	],
 	conf: {
 		minScore: 0.35,
@@ -58,6 +87,13 @@ const Hackaton = {
 		easyDifficulty: 50,
 		normalDifficulty: 100,
 		hardDifficulty: 150,
+		keycodes: {
+			up: 38, // ArrowUp
+			down: 40, // ArrowDown
+			left: 65, // a
+			right: 69, // e
+			center: 90, // z
+		},
 	},
 	/**
 	 * Gets the canvas or its context in which the tracker is rendered
@@ -140,6 +176,7 @@ const Hackaton = {
 		)
 			return false;
 		for (const action of this.actions) {
+			if (!action.okState) continue;
 			let thresholdValue =
 				action.okState === "above"
 					? refPoint[action.axis] + this.state.currentDifficulty
@@ -185,6 +222,7 @@ const Hackaton = {
 	setStateThreshold() {
 		let refPoint = this.state.shoulderRefPoint;
 		for (const action of this.actions) {
+			if (!action.okState) continue;
 			let thresholdValue =
 				action.okState === "above"
 					? refPoint[action.axis] + this.state.currentDifficulty
@@ -196,7 +234,7 @@ const Hackaton = {
 						0,
 						this.tracker.scaleX(thresholdValue),
 						this.tracker.canvas.height,
-						"red"
+						action.color
 					);
 				} else {
 					this.drawLine(
@@ -204,7 +242,7 @@ const Hackaton = {
 						this.tracker.scaleY(thresholdValue),
 						this.tracker.canvas.width,
 						this.tracker.scaleY(thresholdValue),
-						"red"
+						action.color
 					);
 				}
 			};
@@ -251,23 +289,49 @@ const Hackaton = {
 		return refPoint.y < this.state.thresholds["jump"];
 	},
 	jump() {
-		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: jumpKeyCode }));
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.up }));
 	},
 	stopJump() {
-		let jumpKeyCode = Object.keys(this.runner.keycodes.JUMP)[0];
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.up }));
 	},
 	isCrouching(refPoint) {
 		return refPoint.y > this.state.thresholds["crouch"];
 	},
 	crouch() {
-		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: jumpKeyCode }));
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.down }));
 	},
 	stopCrouch() {
-		let jumpKeyCode = Object.keys(this.runner.keycodes.DUCK)[0];
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: jumpKeyCode }));
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.down }));
+	},
+	isGoingLeft(refPoint) {
+		return this.state.position !== "left" && refPoint.x < this.state.thresholds["left"];
+	},
+	goLeft() {
+		this.state.position = "left";
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.left }));
+	},
+	stopGoingLeft() {
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.left }));
+	},
+	isGoingRight(refPoint) {
+		return this.state.position !== "right" && refPoint.x > this.state.thresholds["right"];
+	},
+	goRight() {
+		this.state.position = "right";
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.right }));
+	},
+	stopGoingRight() {
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.right }));
+	},
+	isGoingCenter(refPoint) {
+		return this.state.position !== "center";
+	},
+	goCenter() {
+		this.state.position = "center";
+		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.center }));
+	},
+	stopGoingCenter() {
+		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.center }));
 	},
 	//#endregion
 	/**

@@ -136,9 +136,8 @@ button#disable-camera {
 	border-radius: 1rem;
 	width: 30%;
 	background-color: blue;
-	line-height: 1.5rem;
+	line-height: 1.25rem;
 	color: white;
-	line-height: 1rem;
 }
 #canvasLeaderboardContainer {
 	transition: all 300ms ease-in-out;
