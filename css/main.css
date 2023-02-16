@@ -94,17 +94,36 @@ button#disable-camera {
 	justify-content: space-between;
 	align-items: center;
 	font-size: x-large;
-	padding-inline: 2rem;
+	padding-inline: 1rem;
 	font-weight: bolder;
 	border-top-right-radius: 2rem;
+}
+#difficultySpan,
+#difficultySpan > span {
+	display: flex;
+}
+#difficultyChoices {
+	flex: 2;
+	justify-content: end;
+	align-items: center;
+	display: flex;
+	gap: 0.3rem;
 }
 #difficultyChoices > span {
 	margin-inline: 1rem;
 }
 #difficultyChoices > button {
-	padding-inline: 0.5rem;
+	padding-inline: 0.1rem;
 	border-radius: 1rem;
 	min-width: 3rem;
+	font-size: large;
+	/* max-width: 20%; */
+}
+#btnDiffEasy,
+#btnDiffNormal,
+#btnDiffHard {
+	line-height: 1.2rem;
+	max-width: 18%;
 }
 #leaderboard {
 	display: flex;
@@ -119,6 +138,7 @@ button#disable-camera {
 	background-color: blue;
 	line-height: 1.5rem;
 	color: white;
+	line-height: 1rem;
 }
 #canvasLeaderboardContainer {
 	transition: all 300ms ease-in-out;

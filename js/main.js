@@ -123,8 +123,11 @@ const Hackaton = {
 		return true;
 	},
 	saveScore() {
-		console.log(this.runner.distanceRan);
-		this.state.scoreHistory.push({ difficulty: this.state.currentDifficulty, score: this.runner.distanceRan });
+		console.log(this.runner.distanceMeter.getActualDistance(this.runner.distanceRan));
+		this.state.scoreHistory.push({
+			difficulty: this.state.currentDifficulty,
+			score: this.runner.distanceMeter.getActualDistance(this.runner.distanceRan),
+		});
 	},
 	resetHistory() {
 		this.state.scoreHistory = [];
@@ -192,14 +195,16 @@ const Hackaton = {
 						this.tracker.scaleX(thresholdValue),
 						0,
 						this.tracker.scaleX(thresholdValue),
-						this.tracker.canvas.height
+						this.tracker.canvas.height,
+						"red"
 					);
 				} else {
 					this.drawLine(
 						0,
 						this.tracker.scaleY(thresholdValue),
 						this.tracker.canvas.width,
-						this.tracker.scaleY(thresholdValue)
+						this.tracker.scaleY(thresholdValue),
+						"red"
 					);
 				}
 			};
@@ -338,6 +343,7 @@ const debug = (...args) => DEBUG_MODE && console.log(...args);
 
 $(() => {
 	var myChart;
+	$("#diffScore").text(Hackaton.conf.normalDifficulty);
 	$("#disable-camera").click(function () {
 		that = $(this);
 		that.toggleClass("disabled");
@@ -360,6 +366,9 @@ $(() => {
 		if (Hackaton.state.currentDifficulty > Hackaton.conf.difficultyStep)
 			Hackaton.state.currentDifficulty -= Hackaton.conf.difficultyStep;
 	});
+	$("#btnDiffEasy, #btnDiffNormal, #btnDiffHard, #btnDiffAdd, #btnDiffLess").click(() =>
+		$("#diffScore").text(Hackaton.state.currentDifficulty)
+	);
 	$("#btnResetLeaderboard").click(() => Hackaton.resetHistory());
 	$("#btnLeaderboard").click(() => {
 		const leaderboardContainer = $("#canvasLeaderboardContainer");
