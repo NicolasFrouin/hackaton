@@ -19,6 +19,7 @@ const Hackaton = {
 		thresholds: {},
 		scoreHistory: [],
 		position: "center",
+		action: "",
 	},
 	/**
 	 * Every possible actions to be performed with :
@@ -75,6 +76,15 @@ const Hackaton = {
 			okState: "",
 			color: "",
 		},
+		{
+			key: "tpose",
+			test: "isTPosing",
+			exec: "tPoses",
+			stop: "stopTPosing",
+			axis: "",
+			okState: "",
+			color: "",
+		},
 	],
 	conf: {
 		minScore: 0.35,
@@ -116,8 +126,8 @@ const Hackaton = {
 		this.poses = poses;
 		this.pose = poses[0];
 		this.keypoints = poses[0].keypoints;
-		if (!this.state.hasGameStarted) return this.startGame();
-		if (!this.state.isGameRunning) return;
+		// if (!this.state.hasGameStarted) return this.startGame();
+		// if (!this.state.isGameRunning) return;
 		// if (this.runner.crashed) {
 		// 	this.removeAllTrackerEventsHooks();
 		// 	this.saveScore();
@@ -250,6 +260,7 @@ const Hackaton = {
 			this.state.thresholds[action.key] = thresholdValue;
 			this.state.trackerOrEvents.push({ event: "beforeupdate", hook: drawHook });
 			this.tracker.on("beforeupdate", drawHook);
+			debug(action.key, "=>", thresholdValue);
 		}
 	},
 	removeAllTrackerEventsHooks() {
@@ -290,39 +301,49 @@ const Hackaton = {
 		return refPoint.y < this.state.thresholds["jump"];
 	},
 	jump() {
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.up }));
+		// document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.up }));
+		this.state.action !== "jump" && this.runner.SendMessage("Player", "EventMoove", "jump");
+		this.state.action = "jump";
 	},
 	stopJump() {
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.up }));
+		// document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.up }));
+		this.state.action = "";
+		debug("DEBUG STOP CROUCH")
 	},
 	isCrouching(refPoint) {
+		debug("action", this.state.action)
 		return refPoint.y > this.state.thresholds["crouch"];
 	},
 	crouch() {
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.down }));
+		// document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.down }));
+		this.state.action !== "crouch" && this.runner.SendMessage("Player", "EventMoove", "roll");
+		this.state.action = "crouch";
 	},
 	stopCrouch() {
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.down }));
+		// document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.down }));
+		this.state.action = "";
 	},
 	isGoingLeft(refPoint) {
 		return this.state.position !== "left" && refPoint.x < this.state.thresholds["left"];
 	},
 	goLeft() {
 		this.state.position = "left";
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.left }));
+		// document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.left }));
+		this.runner.SendMessage("Player", "EventMoove", "right");
 	},
 	stopGoingLeft() {
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.left }));
+		// document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.left }));
 	},
 	isGoingRight(refPoint) {
 		return this.state.position !== "right" && refPoint.x > this.state.thresholds["right"];
 	},
 	goRight() {
 		this.state.position = "right";
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.right }));
+		// document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.right }));
+		this.runner.SendMessage("Player", "EventMoove", "left");
 	},
 	stopGoingRight() {
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.right }));
+		// document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.right }));
 	},
 	isGoingCenter(refPoint) {
 		return (
@@ -332,10 +353,11 @@ const Hackaton = {
 	},
 	goCenter() {
 		this.state.position = "center";
-		document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.center }));
+		// document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: this.conf.keycodes.center }));
+		this.runner.SendMessage("Player", "EventMoove", "middle");
 	},
 	stopGoingCenter() {
-		document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.center }));
+		// document.dispatchEvent(new KeyboardEvent("keyup", { keyCode: this.conf.keycodes.center }));
 	},
 	//#endregion
 	/**
@@ -352,9 +374,15 @@ const Hackaton = {
 		if (!this.isArmFlat(r_shoulder, r_elbow, r_wrist) || !this.isArmFlat(l_shoulder, l_elbow, l_wrist))
 			return false;
 		this.state.hasTPosed = true;
-		this.runner.SendMessage("GameManager", "RestartFun", "");
 		return true;
 	},
+	tPoses() {
+		this.setShoulderRef();
+		this.removeAllTrackerEventsHooks();
+		this.runner.SendMessage("GameManager", "RestartFun", "");
+		this.setStateThreshold();
+	},
+	stopTPosing() {},
 	/**
 	 * Compares the keypoint's score with the minimal score from the app conf
 	 * @param {object} keypoint The keypoint to test

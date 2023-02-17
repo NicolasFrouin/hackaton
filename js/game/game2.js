@@ -96,19 +96,19 @@ $(() => {
 			});
 	};
 	document.body.appendChild(script);
-	document.addEventListener("keydown", (e) => {
-		if (e.keyCode === 40) {
-			unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "crouch");
-		} else if (e.keyCode === 38) {
-			unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "jump");
-		}
-	});
-	document.addEventListener("keyup", (e) => {
-		if (e.keyCode === 40) {
-			unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "middle");
-		} else if (e.keyCode === 38) {
-			unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "middle");
-		}
-	});
+	// document.addEventListener("keydown", (e) => {
+	// 	if (e.keyCode === 40) {
+	// 		unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "crouch");
+	// 	} else if (e.keyCode === 38) {
+	// 		unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "jump");
+	// 	}
+	// });
+	// document.addEventListener("keyup", (e) => {
+	// 	if (e.keyCode === 40) {
+	// 		unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "middle");
+	// 	} else if (e.keyCode === 38) {
+	// 		unityInstanceGLOB.SendMessage("JavascriptHook", "SetStatus", "middle");
+	// 	}
+	// });
 	console.log(unityInstanceGLOB);
 });
